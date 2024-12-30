@@ -3,17 +3,18 @@ from aoc import aoc_read, time_solution
 DAY = 1
 TEST = True
 SPLIT_LINES = False
+REMOVE_BLANKS = True
 
 
 @time_solution
 def part_1():
-    data = aoc_read(DAY, TEST, SPLIT_LINES)
+    data = aoc_read(DAY, TEST, SPLIT_LINES, REMOVE_BLANKS)
     return data
 
 
 @time_solution
 def part_2():
-    data = aoc_read(DAY, TEST, SPLIT_LINES)
+    data = aoc_read(DAY, TEST, SPLIT_LINES, REMOVE_BLANKS)
     return 1
 
 
