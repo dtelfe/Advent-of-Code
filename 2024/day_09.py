@@ -1,4 +1,5 @@
 from aoc import aoc_read, time_solution
+from copy import deepcopy
 import time
 
 DAY = 9
@@ -21,13 +22,13 @@ def first_read(data):
         blank = not blank
     return out
 
-def compress(data):
-    compressed = []
+def compress(d):
+    # data = deepcopy(d)
+    data = d
     ls = 0
+    ls_idx = 0
     rs = len(data) - 1
     while True:
-        # print(f"\n{compressed} | {ls} | {rs}")
-        # print(data)
         if rs < ls:
             # If search indicators have flipped, we are done.
             break
@@ -37,51 +38,52 @@ def compress(data):
             break
 
         item = data[ls]
-        if item != [] and item[0] != ".":
-            compressed += item
-            ls +=1
-            continue
-        elif item == []:
-            ls += 1 
-        elif item[0] == ".":
-            rs_item = data[rs]
-            if rs_item == [] or rs_item[0] == ".":
-                rs -= 1
-            else:
-                compressed += [rs_item[-1]]
-                del rs_item[-1]
-                del data[ls][0]
+        ls_max = len(item)
+        if item == []:
+            ls += 1
+            ls_idx = 0
             continue
         
-    return compressed
+        while True:
+            if ls_idx >= ls_max:
+                ls_idx = 0
+                ls +=1
+                break
+            elif item[ls_idx] != ".":
+                ls +=1
+                ls_idx = 0
+                break
+            elif item[ls_idx] == ".":
+                rs_item = data[rs]
+                if rs_item == [] or rs_item[0] == ".":
+                    rs -=1
+                else:
+                    data[ls][ls_idx] = rs_item[-1]
+                    ls_idx += 1
+                    del rs_item[-1]
+
+    data = [sub for sub in data if sub != [] and set(sub) != {"."}]
+    data = [value for items in data for value in items]
+    return data
 
 def check_sum(value):
-    tot = 0
-    for idx, v in enumerate(value):
-        tot += idx * int(v)
-
-    return tot
+    return sum(idx * int(v) for idx, v in enumerate(value))
 
 @time_solution
 def part_1():
     data = aoc_read(DAY, TEST, SPLIT_LINES)
     data = [int(x) for x in data[0]]
     data = first_read(data)
-    # print(data)
-    print("Beginning compression.")
     compressed = compress(data)
-    # print(compressed)
-    print("Calculating check sum.")
     ans = check_sum(compressed)
     return ans
 
 def lump_compress(data):
-    move_ids = []
+    move_ids = set()
     rs = len(data) - 1
     ls = 0
 
     while True:
-        if (ls == 0) and (rs % 1000 == 0): print(rs)
         if rs == 0:
             break
 
@@ -89,27 +91,28 @@ def lump_compress(data):
             ls = 0
             rs -= 1
             continue
-    
+
         if data[rs][0] == "." or data[rs][0] in move_ids:
             rs -= 1
             continue
+
         if data[ls][0] != ".":
             ls +=1
             continue
-    
+
         ls_space = len(data[ls])
         rs_req = len(data[rs])
 
         if rs_req == ls_space:
-            move_ids.append(data[rs][0])
+            move_ids.add(data[rs][0])
             data[ls] = data[rs].copy()
             data[rs] = ["."] * rs_req
             ls = 0
             rs -= 1
             continue
-    
+
         if rs_req < ls_space:
-            move_ids.append(data[rs][0])
+            move_ids.add(data[rs][0])
             data[ls] = data[rs].copy()
             data[rs] = ["."] * rs_req
             data.insert(ls + 1, ["."] * (ls_space - rs_req))
@@ -120,7 +123,7 @@ def lump_compress(data):
         if rs_req > ls_space:
             ls +=1
             continue
-    
+
     return data
 
 def rejig(data):
@@ -144,14 +147,10 @@ def part_2():
     data = aoc_read(DAY, TEST, SPLIT_LINES)
     data = [int(x) for x in data[0]]
     data = first_read(data)
-    
-    print("Beginning compression.")
-    
     compressed = lump_compress(data)
     compressed = rejig(compressed)
     flat_comp = [x for x_list in compressed for x in x_list]
     flat_comp = [0 if x == "." else x for x in flat_comp]
-    print("Calculating check sum.")
     ans = check_sum(flat_comp)
     return ans
 

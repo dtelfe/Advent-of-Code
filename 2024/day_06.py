@@ -1,3 +1,5 @@
+"""AoC 2024 - Solution - Day xx"""
+
 from aoc import aoc_read, time_solution
 from copy import deepcopy
 import os
@@ -12,10 +14,18 @@ TURN = {
     (0, 1): (1, 0),
     (0, -1): (-1, 0)
 }
+
+MOVE_MAP = {
+        "#": "turn",
+        ".": "move",
+        "^": "move",
+        "OOB": "exit"
+    }
+
 def find_start(data):
     for idx, row in enumerate(data):
         if "^" in row:
-            return idx, row.index("^")
+            return (idx, row.index("^"))
 
 def get_value(data, cell, rows, columns):
     y = cell[0]
@@ -27,18 +37,12 @@ def get_value(data, cell, rows, columns):
 
 
 def move(location, movement):
-    return [l + m for l,m in zip(location, movement)]
+    return tuple(coord_loc + coord_move for coord_loc, coord_move in zip(location, movement))
 
 def next_cell_move(data, location, movement, rows, columns):
     next_cell = move(location, movement)
     v = get_value(data, next_cell, rows, columns)
-    move_map = {
-        "#": "turn",
-        ".": "move",
-        "^": "move",
-        "OOB": "exit"
-    }
-    return move_map[v]
+    return MOVE_MAP[v], next_cell
 
 
 @time_solution
@@ -47,27 +51,32 @@ def part_1(size_only=True):
     ROWS = len(data)
     COLUMNS = len(data[0])
     location = find_start(data)
-    history = []
-    movement = [-1, 0]
+    full_history = {}
+    movement = (-1, 0)
 
-    # k = 0
     while True:
-        # k +=1
-        if location not in history:
-            history.append(tuple(location))
+        location_movement = (location, movement)
+
+        if full_history.get(location, -1) == -1:
+            # i.e. if t_loc not present in full history, add this location and move.
+            # This keeps track of the first time entering a cell.
+            full_history[location_movement] = 0
+        full_history[location] = 1
         
-        move_type = next_cell_move(data, location, movement, ROWS, COLUMNS)
+        
+        move_type, next_cell = next_cell_move(data, location, movement, ROWS, COLUMNS)
         if move_type == "move":
-            location = move(location, movement)
+            location = next_cell
         elif move_type == "turn":
             movement = TURN.get(tuple(movement))
         elif move_type == "exit":
             break
     
     if size_only:
-        return len(set(history))
-    else:
-        return list(set(history))
+        distinct_positions = [key for key, value in full_history.items() if value == 1]
+        return len(distinct_positions)
+    full_history = [key for key, value in full_history.items() if value == 0]
+    return full_history
 
 def dprint(data):
     pdata = [''.join(row) for row in data]
@@ -77,49 +86,37 @@ def dprint(data):
 
 @time_solution
 def part_2():
-    # This takes almost 10 mins lol.
-    # Timing for 'part_2': 589.225s
-
-
-    # The obstruction must be placed on the the current path.
     full_history = part_1(False)
     data = aoc_read(DAY, TEST, SPLIT_LINES)
-    
-    # Place obstruction anywhere but "^".
-    # With the goal of getting stuck in a loop.
     location = find_start(data)
     start = deepcopy(location)
-    
+    ROWS = len(data)
+    COLUMNS = len(data[0])
 
-    
     loops = 0
-    for obs in full_history:
-        if obs == start:
+    for new_start, block in zip(full_history, full_history[1:]):
+        if block[0] == start:
             continue
-        n_data = [["#" if [y, x] == obs else v for x, v in enumerate(row)] for y, row in enumerate(data)]
-        n_data[obs[0]][obs[1]] = "#"
-        location = find_start(data)
-        history = []
-        movement = [-1, 0]
+        
+        location = new_start[0]
+        history = set()
+        movement = new_start[1]
 
         while True:
-            loc_mov = tuple(list(location) + list(movement))
-            if loc_mov in history:
+            loc_move = (location, movement)
+            if loc_move in history:
                 loops += 1
                 break
             else:
-                history.append(loc_mov)
+                history.add(loc_move)
             
-            move_type = next_cell_move(n_data, location, movement)
-            if move_type == "move":
-                location = move(location, movement)
-            elif move_type == "turn":
-                movement = TURN.get(tuple(movement))
+            move_type, next_cell = next_cell_move(data, location, movement, ROWS, COLUMNS)
+            if move_type == "move" and next_cell != block[0]:
+                location = next_cell
+            elif move_type == "turn" or next_cell == block[0]:
+                movement = TURN.get(movement)
             elif move_type == "exit":
                 break
-    
-    # Feels like we could so something with making a sort of rectangle from the corner locations
-    # if the corner location is on p1 path?
     return loops
  
 
