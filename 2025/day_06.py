@@ -15,9 +15,7 @@ OP_MAP = {"+": sum, "*": prod}
 # @time_solution
 def part_1(file_id):
     data = read(DAY, file_id)
-    for n, line in enumerate(data):
-        line = [item.strip() for item in line.split(" ") if item != ""]
-        data[n] = line
+    data = [[item for item in line.split(" ") if item] for line in data]
 
     total = 0
     for row in zip(*data):
