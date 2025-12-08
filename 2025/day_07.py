@@ -5,49 +5,34 @@ DAY = 7
 
 
 def add(c1, c2):
-    return tuple([a + b for a, b in zip(c1, c2)])
-
-
-DOWN = (1, 0)
-LEFT = (0, -1)
-RIGHT = (0, 1)
+    return tuple(a + b for a, b in zip(c1, c2))
 
 
 # @time_solution
 def part_1(file_id):
     data = read(DAY, file_id, split_lines=True)
-    n_rows = len(data)
-    n_cols = len(data[0])
 
-    start = tuple([0, data[0].index("S")])
+    n_rows = len(data)
+    start = (0, data[0].index("S"))
     queue = deque([start])
 
     split_points = set()
     seen = set()
     while queue:
         at = queue.popleft()
-        move_to = add(at, DOWN)
-        y, x = move_to
-        if y >= n_rows:
-            continue
+        y, x = at
 
-        if x < 0 or x >= n_cols:
-            continue
-
-        if data[y][x] == ".":
-            queue.append(move_to)
-            seen.add(move_to)
-        elif data[y][x] == "^":
+        path = [data[py][x] for py in range(y, n_rows)]
+        if "^" in path:
+            move_to = (y + path.index("^"), x)
             split_points.add(move_to)
 
-            for move in [LEFT, RIGHT]:
+            for move in [(0, -1), (0, 1)]:
                 point = add(move_to, move)
                 if point in seen:
                     continue
                 queue.append(point)
                 seen.add(point)
-        else:
-            assert False
 
     return len(split_points)
 
@@ -56,28 +41,13 @@ DP = {}
 def possibilities(data, start):
     if start in DP:
         return DP[start]
-
-    n_rows = len(data)
-    n_cols = len(data[0])
-
     result = 1
-    queue = deque([start])
-    while queue:
-        at = queue.popleft()
-        move_to = add(at, DOWN)
-        y, x = move_to
-        if y >= n_rows:
-            continue
+    y, x = start
+    path = [data[py][x] for py in range(y, len(data))]
 
-        if x < 0 or x >= n_cols:
-            continue
-
-        if data[y][x] == ".":
-            queue.append(move_to)
-        elif data[y][x] == "^":
-            result *= possibilities(data, (y, x - 1)) + possibilities(data, (y, x + 1))
-        else:
-            assert False
+    if "^" in path:
+        split_y = y + path.index("^")
+        result = possibilities(data, (split_y, x - 1)) + possibilities(data, (split_y, x + 1))
     DP[start] = result
     return result
 
@@ -85,7 +55,7 @@ def possibilities(data, start):
 # @time_solution
 def part_2(file_id):
     data = read(DAY, file_id)
-    start = tuple([0, data[0].index("S")])
+    start = (0, data[0].index("S"))
     return possibilities(data, start)
 
 
