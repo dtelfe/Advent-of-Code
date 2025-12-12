@@ -51,6 +51,11 @@ def get_ordered_rectangles(data):
     return sizes
 
 
+def ranges_intersect(range_1, range_2):
+    intersection = range(max(range_1.start, range_2.start), min(range_1.stop, range_2.stop))
+    return len(intersection) > 0
+
+
 @time_solution
 def part_2(file_id):
     data = read(DAY, file_id)
@@ -62,6 +67,29 @@ def part_2(file_id):
 
     verticals = [edge for edge in edges if edge[0].stop - edge[0].start == 1]
     horizontals = [edge for edge in edges if edge[1].stop - edge[1].start == 1]
+
+    # Check no horizontals are vertical neighbours as this would give a "fake" cut.
+    # We expect the edge to split inside/outside, but this wouldn't be the case if they neighbour.
+    for i, edge_1 in enumerate(horizontals):
+        for j, edge_2 in enumerate(horizontals):
+            if j <= i:
+                continue
+
+            if abs(edge_2[1].start - edge_1[1].start) != 1:
+                continue
+
+            if ranges_intersect(edge_1[0], edge_2[0]):
+                raise Exception("Solution probably breaks")
+
+    # Similar for vert.
+    for i, edge_1 in enumerate(verticals):
+        for j, edge_2 in enumerate(verticals):
+            if j <= i:
+                continue
+            if abs(edge_2[0].start - edge_1[0].start) != 1:
+                continue
+            if ranges_intersect(edge_1[1], edge_2[1]):
+                raise Exception("Solution probably breaks")
 
     p1_rectangles = get_ordered_rectangles(data)
     for pair, area in p1_rectangles.items():
@@ -76,27 +104,23 @@ def part_2(file_id):
         y_low, y_high = sorted([y1, y2])
         x_low, x_high = sorted([x1, x2])
 
+        check_y = range(y_low + 1, y_high)
+        check_x = range(x_low + 1, x_high)
+
         invalid = False
-        # Check if any edge is inside the rectangle.
-        for y in range(y_low + 1, y_high):  # Ignore boundary.
+        for edge in verticals:
             if invalid:
                 continue
-
-            cuts = [edge for edge in verticals if y in edge[1] and x_low < edge[0].start < x_high]
-
-            if cuts:
+            elif (x_low < edge[0].start < x_high) and ranges_intersect(check_y, edge[1]):
                 invalid = True
 
         if invalid:
             continue
 
-        for x in range(x_low + 1, x_high):  # Ignore boundary.
+        for edge in horizontals:
             if invalid:
                 continue
-
-            cuts = [edge for edge in horizontals if x in edge[0] and y_low < edge[1].start < y_high]
-
-            if cuts:
+            elif (y_low < edge[1].start < y_high) and ranges_intersect(check_x, edge[0]):
                 invalid = True
 
         if invalid:
